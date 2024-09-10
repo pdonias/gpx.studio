@@ -1,4 +1,4 @@
-import { ramerDouglasPeucker } from "./simplify";
+import { fillMissingElevations, ramerDouglasPeucker } from "./simplify";
 import { Coordinates, GPXFileAttributes, GPXFileType, LineStyleExtension, Link, Metadata, RouteType, TrackExtensions, TrackPointExtensions, TrackPointType, TrackSegmentType, TrackType, WaypointType } from "./types";
 import { immerable, isDraft, original, freeze } from "immer";
 
@@ -674,7 +674,7 @@ export class TrackSegment extends GPXTreeLeaf {
     constructor(segment?: TrackSegmentType & { _data?: any } | TrackSegment) {
         super();
         if (segment) {
-            this.trkpt = segment.trkpt.map((point) => new TrackPoint(point));
+            this.trkpt = fillMissingElevations(segment.trkpt).map((point) => new TrackPoint(point));
             if (segment.hasOwnProperty('_data')) {
                 this._data = segment._data;
             }

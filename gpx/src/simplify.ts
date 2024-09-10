@@ -1,5 +1,5 @@
 import { TrackPoint } from "./gpx";
-import { Coordinates } from "./types";
+import { Coordinates, TrackPointType } from "./types";
 
 export type SimplifiedTrackPoint = { point: TrackPoint, distance?: number };
 
@@ -152,4 +152,51 @@ function projected(coord1: Coordinates, coord2: Coordinates, coord3: Coordinates
 
         return { lat: lat4 / rad, lon: lon4 / rad };
     }
+}
+
+// Fill trkpt missing elevations with a linear interpolation of the previous and the next known elevations
+export function fillMissingElevations(trkpt: TrackPointType[]) {
+    let cursor = 0;
+    while (cursor < trkpt.length) {
+        const pt = trkpt[cursor];
+
+        // If point has elevation, skip it
+        if (pt.ele !== undefined) {
+            cursor++;
+            continue;
+        }
+
+        // Find next point with known elevation
+        let scout = cursor + 1;
+        while (scout < trkpt.length && trkpt[scout].ele === undefined) {
+            scout++;
+        }
+
+        const pta = trkpt[cursor - 1];
+        const ptb = trkpt[scout];
+        for (let i = cursor; i < scout; i++) {
+            const pt = trkpt[i];
+
+            // If the first points don't have elevation, assign elevation of the first known point
+            if (pta === undefined) {
+                pt.ele = ptb?.ele;
+                continue;
+            }
+
+            // If the last points don't have elevation, assign elevation of the last known point
+            if (ptb === undefined) {
+                pt.ele = pta?.ele;
+                continue;
+            }
+
+            // Get distances between point and previous/next points with known elevation. Calculate linear interpolation.
+            const da = distance(pta.attributes.lat, pta.attributes.lon, pt.attributes.lat, pt.attributes.lon);
+            const db = distance(pt.attributes.lat, pt.attributes.lon, ptb.attributes.lat, ptb.attributes.lon);
+            pt.ele = (pta.ele * db + ptb.ele * da) / (da + db);
+        }
+
+        cursor = scout + 1;
+    }
+
+    return trkpt;
 }
