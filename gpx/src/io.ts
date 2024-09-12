@@ -58,6 +58,19 @@ export function parseGPX(gpxData: string): GPXFile {
         parsed.metadata = {};
     }
 
+    // Some devices wrap route points (rtept) into a track segment (trkseg) even though it's not spec-compliant
+    if (parsed.rte !== undefined) {
+        parsed.rte.forEach(route => {
+            // @ts-ignore
+            if (route.rtept === undefined && route.trkseg !== undefined) {
+                // @ts-ignore
+                route.rtept = route.trkseg[0].rtept
+                // @ts-ignore
+                delete route.trkseg
+            }
+        })
+    }
+
     return new GPXFile(parsed);
 }
 
